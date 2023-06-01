@@ -323,11 +323,11 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
 {
     printf("\033[0;0H\n");
     for (int i = 0; i < CANVAS_HEIGHT; i++) {
-        printf("|");
+        printf("\033[1;46m#\033[m");
         for (int j = 0; j < CANVAS_WIDTH; j++) {
             printf("\033[%dm\u3000", canvas[i][j].color);
         }
-        printf("\033[0m|\n");
+        printf("\033[1;46m#\033[m\n");
     }
 
     Shape shapeData = shapes[state->queue[1]];
@@ -347,6 +347,7 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
             }
         }
     }
+    printf("\n\t\t\t分數:%d",state->score);
     return;
 }
 
@@ -391,7 +392,7 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
     return linesCleared;
 }
 
-void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
+void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state )
 {
     if (ROTATE_FUNC()) {
         int newRotate = (state->rotate + 1) % 4;
@@ -428,7 +429,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
             state->y++;
         }
         else {
-            state->score += clearLine(canvas);
+            state->score += (clearLine(canvas)*10);
 
             state->x = CANVAS_WIDTH / 2;
             state->y = 0;
@@ -442,6 +443,8 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
             if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0]))
             {
                 printf("\033[%d;%dH\x1b[41m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
+                system("cls");
+                printf("\n\n\n\t\t\033[0;31mgame over\033[m\n\n");
                 exit(0);
             }
         }
@@ -449,8 +452,20 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
     return;
 }
 
+void printBegin() {
+    printf("\n\n\n");
+    printf("\t\t\033[0;33mpress any key to begin\033[m");
+    while (1) {
+        if (_kbhit()) {
+            break;
+        }
+    }
+}
+
 int main()
-{
+{   
+
+    printBegin();
     srand(time(NULL));
     State state = {
         .x = CANVAS_WIDTH / 2,
