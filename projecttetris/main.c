@@ -9,6 +9,7 @@
 #define ROTATE_KEY 0x26   // The key to rotate, default = 0x26 (up arrow)
 #define DOWN_KEY 0x28     // The key to move down, default = 0x28 (down arrow)
 #define FALL_KEY 0x20     // The key to fall, default = 0x20 (spacebar)
+#define CLEAR_KEY 0x10    // The key to clear all block =0x10 (shift)
 
 #define FALL_DELAY 500    // The delay between each fall, default = 500
 #define RENDER_DELAY 100  // The delay between each frame, default = 100
@@ -18,6 +19,7 @@
 #define ROTATE_FUNC() GetAsyncKeyState(ROTATE_KEY) & 0x8000
 #define DOWN_FUNC() GetAsyncKeyState(DOWN_KEY) & 0x8000
 #define FALL_FUNC() GetAsyncKeyState(FALL_KEY) & 0x8000
+#define CLEAR_FUNC() GetAsyncKeyState(CLEAR_KEY) & 0x8000
 
 #define CANVAS_WIDTH 10
 #define CANVAS_HEIGHT 20
@@ -347,7 +349,7 @@ void printCanvas(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state)
             }
         }
     }
-    printf("\n\t\t\t分數:%d",state->score);
+    printf("\n\t\t\tpoint:%d",state->score);
     return;
 }
 
@@ -392,8 +394,18 @@ int clearLine(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH]) {
     return linesCleared;
 }
 
+void printEnd() {
+    char base[9] = { 'G','a','m','e',' ','O','v','e','r'};
+    system("cls");
+    printf("\n\n\n\t\t");
+    for (int i = 0; i < 9; i++) {
+        Sleep(500);
+        printf("\033[0;31m%c\033[m", base[i]);
+    }
+}
+
 void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state )
-{
+{   
     if (ROTATE_FUNC()) {
         int newRotate = (state->rotate + 1) % 4;
         if (move(canvas, state->x, state->y, state->rotate, state->x, state->y, newRotate, state->queue[0]))
@@ -419,8 +431,16 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state )
     else if (FALL_FUNC()) {
         state->fallTime += FALL_DELAY * CANVAS_HEIGHT;
     }
+    else if (CLEAR_FUNC()) {
+        for (int i = 0; i < CANVAS_HEIGHT; i++) {
+            for (int j = 0; j < CANVAS_WIDTH; j++) {
+                resetBlock(&canvas[i][j]);
+            }
+        }
+    }
 
     state->fallTime += RENDER_DELAY;
+
 
     while (state->fallTime >= FALL_DELAY) {
         state->fallTime -= FALL_DELAY;
@@ -442,9 +462,7 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state )
 
             if (!move(canvas, state->x, state->y, state->rotate, state->x, state->y, state->rotate, state->queue[0]))
             {
-                printf("\033[%d;%dH\x1b[41m GAME OVER \x1b[0m\033[%d;%dH", CANVAS_HEIGHT - 3, CANVAS_WIDTH * 2 + 5, CANVAS_HEIGHT + 5, 0);
-                system("cls");
-                printf("\n\n\n\t\t\033[0;31mgame over\033[m\n\n");
+                printEnd();
                 exit(0);
             }
         }
@@ -453,18 +471,26 @@ void logic(Block canvas[CANVAS_HEIGHT][CANVAS_WIDTH], State* state )
 }
 
 void printBegin() {
-    printf("\n\n\n");
-    printf("\t\t\033[0;33mpress any key to begin\033[m");
+    char output[5][50] = { "press","any","key","to","begin" };
     while (1) {
+        printf("\033[? 25l\033");
+        printf("\n\n\n\t\t");
+        printf("\033[0;34mWelcome to Tetris\n\t      ");
+        for (int i = 0; i < 5; i++) {
+            printf("\033[0;33m%s \033[m",output[i]);
+            Sleep(500);
+        }
         if (_kbhit()) {
             break;
         }
+        Sleep(20);
+        system("cls");
+        Sleep(50);
     }
 }
 
 int main()
 {   
-
     printBegin();
     srand(time(NULL));
     State state = {
@@ -472,7 +498,7 @@ int main()
         .y = 0,
         .score = 0,
         .rotate = 0,
-        .fallTime = 0
+        .fallTime = 500
     };
 
     for (int i = 0; i < 4; i++)
@@ -493,12 +519,16 @@ int main()
     // printf("\e[?25l"); // hide cursor
 
     move(canvas, state.x, state.y, state.rotate, state.x, state.y, state.rotate, state.queue[0]);
-
+    int down_speed = 100;
     while (1)
     {
         logic(canvas, &state);
         printCanvas(canvas, &state);
-        Sleep(100);
+        if (state.score % 20 == 0 && state.score != 0) {
+            if (down_speed > 60) {
+                down_speed = down_speed - 10;
+            }
+        }
+        Sleep(down_speed);
     }
-
 }
